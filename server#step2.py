@@ -13,10 +13,6 @@ def client_handler(conn, addr):
         data = conn.recv(BUFF_SIZE)
         if data:
             print(f"Connected {current_thread().name} received from {addr}: {data.decode()}")
-        else:
-            print(f"{addr} finished sending."
-                  f"\n{current_thread().name} is dying. {len(enumerate())} threads remaining.")
-            break
 
 with socket(AF_INET, SOCK_STREAM) as s:
     s.bind(full_addr)
