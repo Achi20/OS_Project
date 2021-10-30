@@ -15,7 +15,6 @@ recv_addr = (IP, PORT_R)
 disc = False            # to check disconnection command output
 connection = False
 active = True
-file_check = Lock()          # to avoid race condition during read commands
 mes_check = Lock()      # to avoid interfering of the two threads' output
 
 
@@ -66,13 +65,9 @@ def readf(s, command, fname, send_addr):                  # to recover read comm
         data = s.recv(int(size))
         data = data.decode('us-ascii')
 
-        file_check.acquire()
-
         file = open(fname, 'w')
         file.write(data)
         file.close()
-
-        file_check.release()
 
 
 def writef(s, command, fname, send_addr, f, content):               # to send write and append commands
