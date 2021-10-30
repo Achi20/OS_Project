@@ -13,9 +13,10 @@ IP = gethostbyname(gethostname())
 # IP = "127.0.0.1"      # required for unix os
 recv_addr = (IP, PORT_R)
 threads = []            # to collect threads' names
-file_check = Lock()          # to avoid race condition during write commands
+files = []              # to collect changing files' names
+gnrl_file_check = Lock()          # to avoid race condition during commands
 mes_check = Lock()           # to avoid race condition during send command
-
+spcfc_file_check = Lock()          # to avoid race condition during specific write commands
 
 def sigint_handler(sig, frame):
     global count
@@ -93,28 +94,42 @@ def writef(conn, fname, app):       # to recover write and append commands
     mode = 'w'
     if app:
         mode = 'a'
-        data = mesf(0, len(data.split()), data)
+        data = mesf(0, len(data.split()), data.split())
         data = "\n" + data
 
-    file_check.acquire()
+    gnrl_file_check.acquire()
+    if fname in files:
+        gnrl_file_check.release()
+        spcfc_file_check.acquire()
+        while fname in files:
+            continue
+        files.append(fname)
+        spcfc_file_check.release()
+    else:
+        files.append(fname)
+        gnrl_file_check.release()
 
     file = open(fname, mode)
     file.write(data)
     file.close()
 
-    file_check.release()
+    files.remove(fname)
 
     conn.send("OK\n".encode('us-ascii'))
 
 
 def readf(conn, fname):         # to send read commands
     conn.send("OK\n".encode('us-ascii'))
-
     size = getsize(fname)
+
+    gnrl_file_check.acquire()
+
     file = open(fname, "r")
     data = file.read(size)
     file.close()
 
+    gnrl_file_check.release()
+    
     conn.send(f"{size} {data}".encode('us-ascii', 'replace'))
 
 
