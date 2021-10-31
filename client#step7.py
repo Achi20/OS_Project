@@ -58,14 +58,14 @@ def readf(s, command, fname, send_addr):                  # to recover read comm
 
     if data[0] == "ERROR":
         data.pop(0)
-        print(f"{command.capitalize()}ing was rejected.\nCause:", *data)
+        print(data)
+        # print(f"{command.capitalize()}ing was rejected.\nCause:", *data)
 
     if data[0] == "OK":
         size = sizef(s)
         data = s.recv(int(size))
-        data = data.decode('us-ascii')
 
-        file = open(fname, 'w')
+        file = open(fname, 'wb')
         file.write(data)
         file.close()
 
@@ -76,25 +76,30 @@ def writef(s, command, fname, send_addr, f, content):               # to send wr
 
     if data[0] == "ERROR":
         data.pop(0)
-        print(f"{command.capitalize()} command was rejected.\nCause:", *data)
+        print(data)
+        # print(f"{command.capitalize()} command was rejected.\nCause:", *data)
 
     if data[0] == "OK":
         size = sys.getsizeof(content)
         if f:
             size = getsize(f)
-            file = open(f, "r")
+            file = open(f, "rb")
             content = file.read(size)
             file.close()
+        else:
+            content = content.encode()
 
-        s.sendto(f"{size} {content}".encode('us-ascii'), send_addr)
+        s.sendto(f"{size} ".encode('us-ascii'), send_addr)
+        s.send(content)
         data = dataf(s)
 
         if data[0] == "ERROR":
             data.pop(0)
-            if command != "append":
-                print("The server was unable to accept the file.\nCause:", *data)
-            else:
-                print("The server was unable to accept the content.\nCause:", *data)
+            print(data)
+            # if command != "append":
+            #     print("The server was unable to accept the file.\nCause:", *data)
+            # else:
+            #     print("The server was unable to accept the content.\nCause:", *data)
 
 
 def client_s():         # the sending thread
@@ -128,7 +133,8 @@ def client_s():         # the sending thread
             else:
                 if data[0] == "ERROR":
                     data.pop(0)
-                    print("The connection was rejected.\nCause:", *data)
+                    print(data)
+                    # print("The connection was rejected.\nCause:", *data)
                 elif data[0] == "OK":
                     connection = True
 
@@ -152,7 +158,8 @@ def client_s():         # the sending thread
                             data = dataf(s)
                             if data[0] == "ERROR":
                                 data.pop(0)
-                                print("The disconnection was rejected.\nCause:", *data)
+                                print(data)
+                                # print("The disconnection was rejected.\nCause:", *data)
                             elif data[0] == "OK":
                                 disc = True
                                 print("\nYou have been disconnected.\n")
@@ -217,12 +224,13 @@ def client_s():         # the sending thread
                         mes = mesf(2, len(command), command)
                         size = sys.getsizeof(mes)
 
-                        s.sendto(f"{command[0].upper()} {command[1]}\n{size} {mes}".encode('us-ascii'), send_addr)
+                        s.sendto(f"MESSAGE {command[1]}\n{size} {mes}".encode('us-ascii'), send_addr)
                         data = dataf(s)
 
                         if data[0] == "ERROR":
                             data.pop(0)
-                            print(f"{command[0].capitalize()}ing was rejected.\nCause:", *data)
+                            print(data)
+                            # print(f"{command[0].capitalize()}ing was rejected.\nCause:", *data)
 
                     elif command[0] == "append" and len(command) >= 3:
                         content = mesf(1, len(command)-1, command)
