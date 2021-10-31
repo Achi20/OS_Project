@@ -89,13 +89,16 @@ def writef(conn, fname, app):       # to recover write and append commands
 
     size = sizef(conn)
     data = conn.recv(int(size))
-    data = data.decode('us-ascii')
 
-    mode = 'w'
-    if app:
-        mode = 'a'
+    mode = 'wb'
+    if app == 1:
+        mode = 'ab'
+        data = data.encode()
         data = mesf(0, len(data.split()), data.split())
         data = "\n" + data
+        data = data.decode()
+    if app == 2:
+        mode = 'ab'
 
     gnrl_file_check.acquire()
     if fname in files:
@@ -124,13 +127,14 @@ def readf(conn, fname):         # to send read commands
 
     gnrl_file_check.acquire()
 
-    file = open(fname, "r")
+    file = open(fname, "rb")
     data = file.read(size)
     file.close()
 
     gnrl_file_check.release()
     
-    conn.send(f"{size} {data}".encode('us-ascii', 'replace'))
+    conn.send(f"{size} ".encode('us-ascii', 'replace'))
+    conn.send(data)
 
 
 def client_handler(conn, s, send_addr):         # the thread for each client
@@ -163,7 +167,7 @@ def client_handler(conn, s, send_addr):         # the thread for each client
                         conn.send("OK\n".encode('us-ascii'))
 
                     except Exception as e:
-                        conn.send(f"ERROR {str(e)}\n".encode('us-ascii'))
+                        conn.send(f"ERROR\n".encode('us-ascii'))
                         print(e)
 
                     else:
@@ -188,11 +192,13 @@ def client_handler(conn, s, send_addr):         # the thread for each client
                         readf(conn, f)
                         continue
 
-                    conn.send("ERROR The file doesn't exist.\n".encode('us-ascii'))
+                    conn.send("ERROR\n".encode('us-ascii'))
+                    print("The file doesn't exist.")
 
                 elif data[0] == "WRITE":
                     if c:
-                        conn.send("ERROR The file already exists.\n".encode('us-ascii'))
+                        conn.send("ERROR\n".encode('us-ascii'))
+                        print("The file already exists.")
                         continue
 
                     writef(conn, data[1], False)
@@ -202,16 +208,18 @@ def client_handler(conn, s, send_addr):         # the thread for each client
 
                 elif data[0] == "APPENDFILE":
                     if c:
-                        writef(conn, data[1], True)
+                        writef(conn, data[1], 2)
                         continue
 
-                    conn.send("ERROR The file doesn't exist.\n".encode('us-ascii'))
+                    conn.send("ERROR\n".encode('us-ascii'))
+                    print("The file doesn't exist.")
 
-                elif data[0] == "SEND":
+                elif data[0] == "MESSAGE":
                     if data[1] not in threads:
-                        conn.send("ERROR The User doesn't exist.\n".encode('us-ascii'))
+                        conn.send("ERROR\n".encode('us-ascii'))
                         size = sizef(conn)
                         data = conn.recv(int(size))         # to clean up the recover
+                        print("The User doesn't exist.")
                         continue
                     conn.send("OK\n".encode('us-ascii'))
                     tmp = data[1]
@@ -225,10 +233,11 @@ def client_handler(conn, s, send_addr):         # the thread for each client
 
                 elif data[0] == "APPEND":
                     if c:
-                        writef(conn, data[1], True)
+                        writef(conn, data[1], 1)
                         continue
 
-                    conn.send("ERROR The file doesn't exist.\n".encode('us-ascii'))
+                    conn.send("ERROR\n".encode('us-ascii'))
+                    print("The file doesn't exist.")
 
                 else: print(f"Something went wrong.\nFrom client: {data}")
             else:
@@ -254,18 +263,20 @@ with socket(AF_INET, SOCK_STREAM) as r:
             continue
 
         except Exception as e:
-            conn.send(f"ERROR {str(e)}\n".encode('us-ascii'))
+            conn.send(f"ERROR\n".encode('us-ascii'))
             count -= 1
             print(e)
             break
 
         else:
             if data[0] != "CONNECT":
-                conn.send("ERROR CONNECT command should be the first one of the connection.\n".encode('us-ascii'))
+                conn.send("ERROR\n".encode('us-ascii'))
+                print("CONNECT command should be the first one of the connection.")
                 continue
             if data[1] in threads:
-                conn.send("ERROR The User already exists.\n".encode('us-ascii'))
+                conn.send("ERROR\n".encode('us-ascii'))
                 count -= 1
+                print("The User already exists.")
                 continue
 
             conn.send("OK\n".encode('us-ascii'))
