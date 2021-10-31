@@ -39,7 +39,7 @@ def mesf(strt, end, command):       # to convert content of append command or me
     return mes
 
 
-def dataf(conn, s, send_addr):      # to recover data and to check sigint and send commands' flag
+def dataf(conn, s):      # to recover data and to check sigint and send commands' flag
     global mes
     global new_mes
     data = ""
@@ -53,7 +53,7 @@ def dataf(conn, s, send_addr):      # to recover data and to check sigint and se
             data += tmp
 
         if count == 0:
-            s.sendto("DISCONNECT\n".encode('us-ascii'), send_addr)
+            s.send("DISCONNECT\n".encode('us-ascii'))
             s.close()
             break
 
@@ -63,7 +63,7 @@ def dataf(conn, s, send_addr):      # to recover data and to check sigint and se
                 tmp = mes.split()
                 size = tmp[1]
                 data = mesf(2, len(tmp), tmp)
-                s.sendto(f"MESSAGE\n{size} {data}".encode('us-ascii'), send_addr)
+                s.send(f"MESSAGE\n{size} {data}".encode('us-ascii'))
 
                 data = ""
                 mes = ""
@@ -137,13 +137,13 @@ def readf(conn, fname):         # to send read commands
     conn.send(data)
 
 
-def client_handler(conn, s, send_addr):         # the thread for each client
+def client_handler(conn, s):         # the thread for each client
     global count
     global mes
     global new_mes
     while True:
         try:
-            data = dataf(conn, s, send_addr)
+            data = dataf(conn, s)
 
         except Exception as e:
             print(f"{current_thread().name}: {e}")
@@ -171,7 +171,7 @@ def client_handler(conn, s, send_addr):         # the thread for each client
                         print(e)
 
                     else:
-                        s.sendto("DISCONNECT\n".encode('us-ascii'), send_addr)
+                        s.send("DISCONNECT\n".encode('us-ascii'))
                         s.close()
                         print(f"{current_thread().name} has disconnected.")
                         threads.remove(current_thread().name)
@@ -287,5 +287,5 @@ with socket(AF_INET, SOCK_STREAM) as r:
             s = socket(AF_INET, SOCK_STREAM)
             s.connect(send_addr)
 
-            t = Thread(target=client_handler, args=(conn, s, send_addr), name=data[1])
+            t = Thread(target=client_handler, args=(conn, s), name=data[1])
             t.start()
