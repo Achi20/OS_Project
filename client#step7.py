@@ -53,7 +53,7 @@ def sizef(s):           # to recover size of files
 
 
 def readf(s, command, fname, send_addr):                  # to recover read commands
-    s.sendto(f"{command.upper()} {fname}\n".encode(), send_addr)
+    s.send(f"{command.upper()} {fname}\n".encode())
     data = dataf(s)
 
     if data[0] == "ERROR":
@@ -71,7 +71,7 @@ def readf(s, command, fname, send_addr):                  # to recover read comm
 
 
 def writef(s, command, fname, send_addr, f, content):               # to send write and append commands
-    s.sendto(f"{command.upper()} {fname}\n".encode('us-ascii'), send_addr)
+    s.send(f"{command.upper()} {fname}\n".encode('us-ascii'))
     data = dataf(s)
 
     if data[0] == "ERROR":
@@ -89,7 +89,7 @@ def writef(s, command, fname, send_addr, f, content):               # to send wr
         else:
             content = content.encode()
 
-        s.sendto(f"{size} ".encode('us-ascii'), send_addr)
+        s.send(f"{size} ".encode('us-ascii'))
         s.send(content)
         data = dataf(s)
 
@@ -124,7 +124,7 @@ def client_s():         # the sending thread
 
             try:
                 s.connect(send_addr)
-                s.sendto(f"CONNECT {command[1]}\n".encode('us-ascii'), send_addr)
+                s.send(f"CONNECT {command[1]}\n".encode('us-ascii'))
                 data = dataf(s)
 
             except Exception as e:
@@ -154,7 +154,7 @@ def client_s():         # the sending thread
 
                     if len(command) == 1:
                         if command[0] == "disconnect":
-                            s.sendto("DISCONNECT\n".encode('us-ascii'), send_addr)
+                            s.send("DISCONNECT\n".encode('us-ascii'))
                             data = dataf(s)
                             if data[0] == "ERROR":
                                 data.pop(0)
@@ -166,19 +166,19 @@ def client_s():         # the sending thread
                                 break
 
                         elif command[0] == "lu":
-                            s.sendto("LU\n".encode('us-ascii'), send_addr)
+                            s.send("LU\n".encode('us-ascii'))
                             data = dataf(s)
                             print("Users:", *data)
 
                         elif command[0] == "lf":
-                            s.sendto("LF\n".encode('us-ascii'), send_addr)
+                            s.send("LF\n".encode('us-ascii'))
                             data = dataf(s)
                             print("Files:", *data)
 
                         elif command[0] == "quit":
                             disc = True
                             active = False
-                            s.sendto("DISCONNECT\n".encode('us-ascii'), send_addr)
+                            s.send("DISCONNECT\n".encode('us-ascii'))
                             print("\nYou have quit.")
                             break
 
@@ -224,7 +224,7 @@ def client_s():         # the sending thread
                         mes = mesf(2, len(command), command)
                         size = sys.getsizeof(mes)
 
-                        s.sendto(f"MESSAGE {command[1]}\n{size} {mes}".encode('us-ascii'), send_addr)
+                        s.send(f"MESSAGE {command[1]}\n{size} {mes}".encode('us-ascii'))
                         data = dataf(s)
 
                         if data[0] == "ERROR":
